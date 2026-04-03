@@ -4,7 +4,6 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.when;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
-import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.authentication;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -24,7 +23,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.context.annotation.Import;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
@@ -86,9 +84,13 @@ class AuthControllerTest {
                         .contentType(APPLICATION_JSON)
                         .content(requestBody))
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.username").exists())
-                .andExpect(jsonPath("$.email").exists())
-                .andExpect(jsonPath("$.password").exists());
+                .andExpect(jsonPath("$.title").value("Bad Request"))
+                .andExpect(jsonPath("$.status").value(400))
+                .andExpect(jsonPath("$.detail").value("Validation failed"))
+                .andExpect(jsonPath("$.instance").value("/api/auth/register"))
+                .andExpect(jsonPath("$.validationErrors.username").exists())
+                .andExpect(jsonPath("$.validationErrors.email").exists())
+                .andExpect(jsonPath("$.validationErrors.password").exists());
     }
 
     @Test
@@ -108,7 +110,10 @@ class AuthControllerTest {
                         .contentType(APPLICATION_JSON)
                         .content(requestBody))
                 .andExpect(status().isConflict())
-                .andExpect(jsonPath("$.error").value("Username already exists"));
+                .andExpect(jsonPath("$.title").value("Conflict"))
+                .andExpect(jsonPath("$.status").value(409))
+                .andExpect(jsonPath("$.detail").value("Username already exists"))
+                .andExpect(jsonPath("$.instance").value("/api/auth/register"));
     }
 
     @Test
@@ -135,17 +140,20 @@ class AuthControllerTest {
                 .when(authService).login(any());
 
         String requestBody = """
-            {
-              "username": "mateusz_1",
-              "password": "WrongPassword1!"
-            }
-            """;
+                {
+                  "username": "mateusz_1",
+                  "password": "WrongPassword1!"
+                }
+                """;
 
         mockMvc.perform(post("/api/auth/login")
                         .contentType(APPLICATION_JSON)
                         .content(requestBody))
                 .andExpect(status().isUnauthorized())
-                .andExpect(jsonPath("$.error").value("Invalid username or password"));
+                .andExpect(jsonPath("$.title").value("Unauthorized"))
+                .andExpect(jsonPath("$.status").value(401))
+                .andExpect(jsonPath("$.detail").value("Invalid username or password"))
+                .andExpect(jsonPath("$.instance").value("/api/auth/login"));
     }
 
     @Test
@@ -161,8 +169,12 @@ class AuthControllerTest {
                         .contentType(APPLICATION_JSON)
                         .content(requestBody))
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.username").exists())
-                .andExpect(jsonPath("$.password").exists());
+                .andExpect(jsonPath("$.title").value("Bad Request"))
+                .andExpect(jsonPath("$.status").value(400))
+                .andExpect(jsonPath("$.detail").value("Validation failed"))
+                .andExpect(jsonPath("$.instance").value("/api/auth/login"))
+                .andExpect(jsonPath("$.validationErrors.username").exists())
+                .andExpect(jsonPath("$.validationErrors.password").exists());
     }
 
     @Test
