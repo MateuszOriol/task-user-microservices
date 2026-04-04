@@ -2,13 +2,14 @@ package com.mateuszoriol.userservice.service;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 import com.mateuszoriol.userservice.dto.AuthResponse;
 import com.mateuszoriol.userservice.dto.LoginRequest;
 import com.mateuszoriol.userservice.entity.Role;
 import com.mateuszoriol.userservice.entity.User;
 import com.mateuszoriol.userservice.exception.InvalidCredentialsException;
+import com.mateuszoriol.userservice.exception.UserNotFoundException;
 import com.mateuszoriol.userservice.security.JwtService;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -73,5 +74,23 @@ class AuthServiceTest {
         );
 
         assertEquals("Invalid username or password", exception.getMessage());
+    }
+
+    @Test
+    void shouldThrowWhenUserDoesNotExist() {
+        LoginRequest request = new LoginRequest();
+        request.setUsername("mateusz_1");
+        request.setPassword("Secret123!");
+
+        when(userService.findByUsernameOrThrow("mateusz_1"))
+                .thenThrow(new UserNotFoundException("User not found"));
+
+        InvalidCredentialsException exception = assertThrows(
+                InvalidCredentialsException.class,
+                () -> authService.login(request)
+        );
+
+        assertEquals("Invalid username or password", exception.getMessage());
+        verify(jwtService, never()).generateToken(any());
     }
 }
